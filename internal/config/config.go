@@ -7,7 +7,8 @@ import (
 )
 
 type Config struct {
-	DB DBConfig
+	DB     DBConfig
+	OModel string
 }
 
 type DBConfig struct {
@@ -29,6 +30,7 @@ func Load(log *zap.Logger) *Config {
 			Name:     getEnv("DB_NAME", log),
 			SSLMode:  getEnv("DB_SSLMODE", log),
 		},
+		OModel: getEnv("OLLAMA_MODEL", log),
 	}
 }
 

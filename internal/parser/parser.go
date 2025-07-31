@@ -2,8 +2,12 @@ package parser
 
 import (
 	"bytes"
+	"context"
+	"fmt"
 
 	"github.com/ledongthuc/pdf"
+	"github.com/tmc/langchaingo/llms"
+	"github.com/tmc/langchaingo/llms/ollama"
 )
 
 func ExtractTextFromPDF(path string) (string, error) {
@@ -23,4 +27,62 @@ func ExtractTextFromPDF(path string) (string, error) {
 		return "", err
 	}
 	return textBuilder.String(), nil
+}
+
+func BuildPrompt(text string) string {
+	return fmt.Sprintf(`
+Ты — помощник по анализу резюме. Проанализируй текст и верни результат в формате JSON со следующей структурой:
+
+{
+  "full_name": "ФИО",
+  "email": "email@example.com",
+  "phone": "+7 000 000-00-00",
+  "location": "Город",
+  "skills": ["Go", "PostgreSQL"],
+  "experience": [
+    {
+      "company": "Компания",
+      "position": "Должность",
+      "start_date": "2023" // дата начала обучения ,
+      "end_date": "2027" // дата окончания обучения,
+      "description": "Описание работы"
+    }
+  ],
+  "education": [
+    {
+      "institution": "Университет",
+      "degree": "Степень",
+      "field": "Специальность",
+      "start_date": "2016-09-01",
+      "end_date": "2020-06-30"
+    }
+  ]
+}
+
+Текст резюме:
+%s
+`, text)
+}
+
+// Парсинг резюме через LLM (Ollama)
+func ParseResumeWithLLM(pdfPath string, modelName string) (string, error) {
+	resumeText, err := ExtractTextFromPDF(pdfPath)
+	if err != nil {
+		return "", err
+	}
+	llm, err := ollama.New(ollama.WithModel(modelName))
+	if err != nil {
+		return "", err
+	}
+	ctx := context.Background()
+	prompt := BuildPrompt(resumeText)
+	content := []llms.MessageContent{
+		llms.TextParts(llms.ChatMessageTypeSystem, "Ты — парсер резюме. Возвращай только JSON в указанной структуре."),
+		llms.TextParts(llms.ChatMessageTypeHuman, prompt),
+	}
+	resp, err := llm.GenerateContent(ctx, content)
+	if err != nil {
+		return "", err
+	}
+	return resp.Choices[0].Content, nil
 }

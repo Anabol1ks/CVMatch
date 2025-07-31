@@ -9,6 +9,7 @@ import (
 
 func Migrate(db *gorm.DB, log *zap.Logger) {
 	if err := db.AutoMigrate(
+		&models.User{},
 		&models.Resume{},
 		&models.ResumeFile{},
 		&models.Skill{},
