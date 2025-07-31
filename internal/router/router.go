@@ -2,14 +2,24 @@ package router
 
 import (
 	"CVMatch/internal/config"
+	"CVMatch/internal/handlers"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
-func Router(db *gorm.DB, log *zap.Logger, cfg *config.Config) *gin.Engine {
+type Handlers struct {
+	User *handlers.UserHandler
+}
+
+func Router(db *gorm.DB, log *zap.Logger, cfg *config.Config, handlers *Handlers) *gin.Engine {
 	r := gin.Default()
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -17,7 +27,11 @@ func Router(db *gorm.DB, log *zap.Logger, cfg *config.Config) *gin.Engine {
 		})
 	})
 
-	// api := r.Group("/api/v1")
+	auth := r.Group("/auth")
+	{
+		auth.POST("/register", handlers.User.RegisterHandler)
+	}
 
+	// r.POST("/upload", handlers.User.UploadResumeHandler)
 	return r
 }

@@ -40,22 +40,22 @@ func BuildPrompt(text string) string {
   "location": "Город",
   "skills": ["Go", "PostgreSQL"],
   "experience": [
-    {
-      "company": "Компания",
-      "position": "Должность",
-      "start_date": "2023" // дата начала обучения ,
-      "end_date": "2027" // дата окончания обучения,
-      "description": "Описание работы"
-    }
+	{
+	  "company": "Компания",
+	  "position": "Должность",
+	  "start_date": "2023" // дата начала обучения ,
+	  "end_date": "2027" // дата окончания обучения,
+	  "description": "Описание работы"
+	}
   ],
   "education": [
-    {
-      "institution": "Университет",
-      "degree": "Степень",
-      "field": "Специальность",
-      "start_date": "2016-09-01",
-      "end_date": "2020-06-30"
-    }
+	{
+	  "institution": "Университет",
+	  "degree": "Степень",
+	  "field": "Специальность",
+	  "start_date": "2016-09-01",
+	  "end_date": "2020-06-30"
+	}
   ]
 }
 
@@ -66,23 +66,30 @@ func BuildPrompt(text string) string {
 
 // Парсинг резюме через LLM (Ollama)
 func ParseResumeWithLLM(pdfPath string, modelName string) (string, error) {
+	fmt.Println("[LLM] Начинаем парсинг резюме через LLM...")
 	resumeText, err := ExtractTextFromPDF(pdfPath)
 	if err != nil {
+		fmt.Println("[LLM] Ошибка извлечения текста из PDF:", err)
 		return "", err
 	}
+	fmt.Println("[LLM] Текст резюме успешно извлечён, длина:", len(resumeText))
 	llm, err := ollama.New(ollama.WithModel(modelName))
 	if err != nil {
+		fmt.Println("[LLM] Ошибка инициализации Ollama:", err)
 		return "", err
 	}
 	ctx := context.Background()
 	prompt := BuildPrompt(resumeText)
+	fmt.Println("[LLM] Prompt сформирован, длина:", len(prompt))
 	content := []llms.MessageContent{
 		llms.TextParts(llms.ChatMessageTypeSystem, "Ты — парсер резюме. Возвращай только JSON в указанной структуре."),
 		llms.TextParts(llms.ChatMessageTypeHuman, prompt),
 	}
 	resp, err := llm.GenerateContent(ctx, content)
 	if err != nil {
+		fmt.Println("[LLM] Ошибка генерации ответа LLM:", err)
 		return "", err
 	}
+	fmt.Println("[LLM] Ответ LLM получен, длина:", len(resp.Choices[0].Content))
 	return resp.Choices[0].Content, nil
 }

@@ -1,9 +1,13 @@
 package main
 
 import (
+	_ "CVMatch/docs"
 	"CVMatch/internal/config"
+	"CVMatch/internal/handlers"
 	"CVMatch/internal/logger"
+	"CVMatch/internal/repository"
 	"CVMatch/internal/router"
+	"CVMatch/internal/service"
 	"CVMatch/internal/storage"
 	"os"
 
@@ -26,7 +30,15 @@ func main() {
 	db := storage.ConnectDB(&cfg.DB, log)
 	storage.Migrate(db, log)
 
-	r := router.Router(db, log, cfg)
+	userRepo := repository.NewUserRepository(db)
+	userService := service.NewUserService(userRepo, log, cfg)
+	userHandler := handlers.NewUserHandler(userService)
+
+	handlers := &router.Handlers{
+		User: userHandler,
+	}
+
+	r := router.Router(db, log, cfg, handlers)
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal("Failed to start server", zap.Error(err))
 	}
