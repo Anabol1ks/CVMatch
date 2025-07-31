@@ -43,8 +43,8 @@ func BuildPrompt(text string) string {
 	{
 	  "company": "Компания",
 	  "position": "Должность",
-	  "start_date": "2023" // дата начала обучения ,
-	  "end_date": "2027" // дата окончания обучения,
+	  "start_date": "2023",
+	  "end_date": "2027",
 	  "description": "Описание работы"
 	}
   ],
@@ -53,8 +53,8 @@ func BuildPrompt(text string) string {
 	  "institution": "Университет",
 	  "degree": "Степень",
 	  "field": "Специальность",
-	  "start_date": "2016-09-01",
-	  "end_date": "2020-06-30"
+	  "start_date": "2016-09-01" // дата начала обучения,
+	  "end_date": "2020-06-30 // дата окончания обучения (обычно указана только дата окончания)"
 	}
   ]
 }
@@ -91,5 +91,6 @@ func ParseResumeWithLLM(pdfPath string, modelName string) (string, error) {
 		return "", err
 	}
 	fmt.Println("[LLM] Ответ LLM получен, длина:", len(resp.Choices[0].Content))
+	fmt.Println(resp.Choices[0].Content)
 	return resp.Choices[0].Content, nil
 }
