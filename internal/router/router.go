@@ -3,6 +3,7 @@ package router
 import (
 	"CVMatch/internal/config"
 	"CVMatch/internal/handlers"
+	"CVMatch/internal/middleware"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -30,7 +31,10 @@ func Router(db *gorm.DB, log *zap.Logger, cfg *config.Config, handlers *Handlers
 	auth := r.Group("/auth")
 	{
 		auth.POST("/register", handlers.User.RegisterHandler)
+		auth.POST("/login", handlers.User.LoginHandler)
+		auth.POST("/refresh", handlers.User.RefreshHandler)
 	}
+	r.GET("/profile", middleware.JWTAuth(&cfg.JWT), handlers.User.ProfileHandler)
 
 	// r.POST("/upload", handlers.User.UploadResumeHandler)
 	return r

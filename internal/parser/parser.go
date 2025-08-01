@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/ledongthuc/pdf"
 	"github.com/tmc/langchaingo/llms"
@@ -66,6 +67,7 @@ func BuildPrompt(text string) string {
 
 // Парсинг резюме через LLM (Ollama)
 func ParseResumeWithLLM(pdfPath string, modelName string) (string, error) {
+	start := time.Now()
 	fmt.Println("[LLM] Начинаем парсинг резюме через LLM...")
 	resumeText, err := ExtractTextFromPDF(pdfPath)
 	if err != nil {
@@ -92,5 +94,7 @@ func ParseResumeWithLLM(pdfPath string, modelName string) (string, error) {
 	}
 	fmt.Println("[LLM] Ответ LLM получен, длина:", len(resp.Choices[0].Content))
 	fmt.Println(resp.Choices[0].Content)
+	elapsed := time.Since(start)
+	fmt.Printf("[LLM] Время парсинга резюме: %s\n", elapsed)
 	return resp.Choices[0].Content, nil
 }

@@ -2,6 +2,7 @@ package service
 
 import (
 	"CVMatch/internal/config"
+	"CVMatch/internal/jwt"
 	"CVMatch/internal/models"
 	"CVMatch/internal/repository"
 	"errors"
@@ -58,4 +59,63 @@ func hashedPassword(password string) (string, error) {
 		return "", err
 	}
 	return string(hash), nil
+}
+
+var ErrUserNotFound = errors.New("user not found")
+var ErrInvalidPassword = errors.New("invalid password")
+
+func (s *UserService) Login(email, password string) (access, refresh string, err error) {
+	user, err := s.repo.FindByEmail(email)
+	if err != nil {
+		s.log.Warn("User not found", zap.String("email", email))
+		return "", "", ErrUserNotFound
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		s.log.Warn("Invalid password", zap.String("email", email))
+		return "", "", ErrInvalidPassword
+	}
+
+	access, err = jwt.GenerateAccessToken(user.ID.String(), &s.cfg.JWT)
+	if err != nil {
+		s.log.Error("Failed to generate access token", zap.Error(err))
+		return "", "", err
+	}
+	refresh, err = jwt.GenerateRefreshToken(user.ID.String(), &s.cfg.JWT)
+	if err != nil {
+		s.log.Error("Failed to generate refresh token", zap.Error(err))
+		return "", "", err
+	}
+
+	return access, refresh, nil
+}
+
+var ErrInvalidToken = errors.New("invalid token")
+
+func (s *UserService) RefreshToken(refreshToken string) (access, refresh string, err error) {
+	claims, err := jwt.ParseRefreshToken(refreshToken, s.cfg.JWT.Refresh)
+	if err != nil {
+		return "", "", ErrInvalidToken
+	}
+
+	access, err = jwt.GenerateAccessToken(claims.UserID, &s.cfg.JWT)
+	if err != nil {
+		return "", "", err
+	}
+
+	refresh, err = jwt.GenerateRefreshToken(claims.UserID, &s.cfg.JWT)
+	if err != nil {
+		return "", "", err
+	}
+
+	return access, refresh, nil
+}
+
+func (s *UserService) Profile(userID string) (*models.User, error) {
+	user, err := s.repo.FindByID(userID)
+	if err != nil {
+		s.log.Warn("User not found", zap.String("userID", userID))
+		return nil, ErrUserNotFound
+	}
+	return user, nil
 }
