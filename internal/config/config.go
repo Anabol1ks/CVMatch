@@ -10,9 +10,12 @@ import (
 )
 
 type Config struct {
-	DB     DBConfig
-	OModel string
-	JWT    JWTConfig
+	DB               DBConfig
+	OModel           string
+	JWT              JWTConfig
+	YandexGPTIAM     string
+	YandexGPTCatalog string
+	YandexGPTModel   string
 }
 
 type JWTConfig struct {
@@ -41,13 +44,15 @@ func Load(log *zap.Logger) *Config {
 			Name:     getEnv("DB_NAME", log),
 			SSLMode:  getEnv("DB_SSLMODE", log),
 		},
-		OModel: getEnv("OLLAMA_MODEL", log),
 		JWT: JWTConfig{
 			Access:     getEnv("ACCESS_SECRET", log),
 			AccessExp:  parseDurationWithDays(getEnv("ACCESS_EXP", log)),
 			Refresh:    getEnv("REFRESH_SECRET", log),
 			RefreshExp: parseDurationWithDays(getEnv("REFRESH_EXP", log)),
 		},
+		YandexGPTIAM:     getEnv("YANDEXGPT_IAM", log),
+		YandexGPTCatalog: getEnv("YANDEXGPT_CATALOG_ID", log),
+		YandexGPTModel:   getEnv("YANDEXGPT_MODEL", log),
 	}
 }
 

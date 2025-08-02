@@ -85,9 +85,9 @@ type Experience struct {
 	ResumeID    uuid.UUID `gorm:"type:uuid;not null;index"`
 	Company     string    `gorm:"type:varchar(255)"`
 	Position    string    `gorm:"type:varchar(255)"`
-	StartDate   time.Time
-	EndDate     *time.Time
-	Description string `gorm:"type:text"`
+	StartDate   string    `gorm:"type:varchar(32)"`
+	EndDate     string    `gorm:"type:varchar(32)"`
+	Description string    `gorm:"type:text"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
@@ -105,8 +105,8 @@ type Education struct {
 	Institution string    `gorm:"type:varchar(255)"`
 	Degree      string    `gorm:"type:varchar(255)"`
 	Field       string    `gorm:"type:varchar(255)"`
-	StartDate   time.Time
-	EndDate     *time.Time
+	StartDate   string    `gorm:"type:varchar(32)"`
+	EndDate     string    `gorm:"type:varchar(32)"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	DeletedAt   gorm.DeletedAt `gorm:"index"`

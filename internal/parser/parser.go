@@ -1,14 +1,14 @@
 package parser
 
 import (
+	"CVMatch/internal/config"
 	"bytes"
 	"context"
 	"fmt"
 	"time"
 
 	"github.com/ledongthuc/pdf"
-	"github.com/tmc/langchaingo/llms"
-	"github.com/tmc/langchaingo/llms/ollama"
+	"github.com/sheeiavellie/go-yandexgpt"
 )
 
 func ExtractTextFromPDF(path string) (string, error) {
@@ -54,7 +54,7 @@ func BuildPrompt(text string) string {
 	  "institution": "Университет",
 	  "degree": "Степень",
 	  "field": "Специальность",
-	  "start_date": "2016-09-01" // дата начала обучения,
+	  "start_date": "2016-09-01" // дата начала обучения (если не указано, остваить пустым),
 	  "end_date": "2020-06-30 // дата окончания обучения (обычно указана только дата окончания)"
 	}
   ]
@@ -66,7 +66,7 @@ func BuildPrompt(text string) string {
 }
 
 // Парсинг резюме через LLM (Ollama)
-func ParseResumeWithLLM(pdfPath string, modelName string) (string, error) {
+func ParseResumeWithLLM(pdfPath string, cfg *config.Config) (string, error) {
 	start := time.Now()
 	fmt.Println("[LLM] Начинаем парсинг резюме через LLM...")
 	resumeText, err := ExtractTextFromPDF(pdfPath)
@@ -75,26 +75,36 @@ func ParseResumeWithLLM(pdfPath string, modelName string) (string, error) {
 		return "", err
 	}
 	fmt.Println("[LLM] Текст резюме успешно извлечён, длина:", len(resumeText))
-	llm, err := ollama.New(ollama.WithModel(modelName))
-	if err != nil {
-		fmt.Println("[LLM] Ошибка инициализации Ollama:", err)
-		return "", err
-	}
-	ctx := context.Background()
 	prompt := BuildPrompt(resumeText)
 	fmt.Println("[LLM] Prompt сформирован, длина:", len(prompt))
-	content := []llms.MessageContent{
-		llms.TextParts(llms.ChatMessageTypeSystem, "Ты — парсер резюме. Возвращай только JSON в указанной структуре."),
-		llms.TextParts(llms.ChatMessageTypeHuman, prompt),
+
+	client := yandexgpt.NewYandexGPTClientWithAPIKey(cfg.YandexGPTIAM)
+	request := yandexgpt.YandexGPTRequest{
+		ModelURI: yandexgpt.MakeModelURI(cfg.YandexGPTCatalog, yandexgpt.YandexGPTModelLite),
+		CompletionOptions: yandexgpt.YandexGPTCompletionOptions{
+			Stream:      false,
+			Temperature: 0.7,
+			MaxTokens:   2000,
+		},
+		Messages: []yandexgpt.YandexGPTMessage{
+			{
+				Role: yandexgpt.YandexGPTMessageRoleSystem,
+				Text: "Ты — парсер резюме. Возвращай только JSON в указанной структуре.",
+			},
+			{
+				Role: yandexgpt.YandexGPTMessageRoleUser,
+				Text: prompt,
+			},
+		},
 	}
-	resp, err := llm.GenerateContent(ctx, content)
+	response, err := client.GetCompletion(context.Background(), request)
 	if err != nil {
-		fmt.Println("[LLM] Ошибка генерации ответа LLM:", err)
+		fmt.Println("Request error")
 		return "", err
 	}
-	fmt.Println("[LLM] Ответ LLM получен, длина:", len(resp.Choices[0].Content))
-	fmt.Println(resp.Choices[0].Content)
+	fmt.Println("[LLM] Ответ LLM получен, длина:", len(response.Result.Alternatives[0].Message.Text))
+	fmt.Println("[LLM] Ответ LLM:", response.Result.Alternatives[0].Message.Text)
 	elapsed := time.Since(start)
 	fmt.Printf("[LLM] Время парсинга резюме: %s\n", elapsed)
-	return resp.Choices[0].Content, nil
+	return response.Result.Alternatives[0].Message.Text, nil
 }

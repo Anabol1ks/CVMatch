@@ -50,6 +50,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pkoukk/tiktoken-go v0.1.6 // indirect
+	github.com/sheeiavellie/go-yandexgpt v1.7.0 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/swaggo/files v1.0.1 // indirect
 	github.com/swaggo/gin-swagger v1.6.0 // indirect
