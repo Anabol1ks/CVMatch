@@ -1,4 +1,22 @@
 definitions:
+  handlers.UserLoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handlers.UserRefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
   handlers.UserRegisterRequest:
     properties:
       email:
@@ -13,9 +31,87 @@ definitions:
     - name
     - password
     type: object
+  response.EducationDTO:
+    properties:
+      degree:
+        type: string
+      end_date:
+        type: string
+      field:
+        type: string
+      institution:
+        type: string
+      start_date:
+        type: string
+    type: object
   response.ErrorResponse:
     properties:
       error:
+        type: string
+    type: object
+  response.ExperienceDTO:
+    properties:
+      company:
+        type: string
+      description:
+        type: string
+      end_date:
+        type: string
+      position:
+        type: string
+      start_date:
+        type: string
+    type: object
+  response.ParsedResumeDTO:
+    properties:
+      education:
+        items:
+          $ref: '#/definitions/response.EducationDTO'
+        type: array
+      email:
+        type: string
+      experience:
+        items:
+          $ref: '#/definitions/response.ExperienceDTO'
+        type: array
+      file_url:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: string
+      location:
+        type: string
+      phone:
+        type: string
+      skills:
+        items:
+          type: string
+        type: array
+    type: object
+  response.ResumeListDTO:
+    properties:
+      resumes:
+        items:
+          $ref: '#/definitions/response.ResumeListItemDTO'
+        type: array
+    type: object
+  response.ResumeListItemDTO:
+    properties:
+      created_at:
+        type: string
+      file_url:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: string
+    type: object
+  response.TokenResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
         type: string
     type: object
   response.UserRegisterResponse:
@@ -29,7 +125,77 @@ definitions:
     type: object
 info:
   contact: {}
+  title: CVMatch API
+  version: "1.0"
 paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Вход существующего пользователя
+      parameters:
+      - description: Параметры входа пользователя
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UserLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный вход пользователя
+          schema:
+            $ref: '#/definitions/response.TokenResponse'
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "409":
+          description: Пользователь уже существует
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Вход пользователя
+      tags:
+      - users
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Обновление refresh-токена
+      parameters:
+      - description: Параметры обновления токена
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UserRefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешное обновление токена
+          schema:
+            $ref: '#/definitions/response.TokenResponse'
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Неверный токен
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Обновление токена
+      tags:
+      - users
   /auth/register:
     post:
       consumes:
@@ -64,4 +230,100 @@ paths:
       summary: Регистрация пользователя
       tags:
       - users
+  /resumes/{id}:
+    get:
+      description: Получение резюме по ID для пользователя
+      parameters:
+      - description: ID резюме
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешное получение резюме
+          schema:
+            $ref: '#/definitions/response.ParsedResumeDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Resume not found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получение резюме по ID
+      tags:
+      - resumes
+  /resumes/list:
+    get:
+      description: Получение списка резюме для пользователя
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешное получение списка резюме
+          schema:
+            $ref: '#/definitions/response.ResumeListDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получение списка резюме
+      tags:
+      - resumes
+  /resumes/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Загрузка резюме для пользователя
+      parameters:
+      - description: Резюме
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешная загрузка резюме
+          schema:
+            $ref: '#/definitions/response.ParsedResumeDTO'
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Загрузка резюме
+      tags:
+      - resumes
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

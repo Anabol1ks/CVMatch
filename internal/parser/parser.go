@@ -103,7 +103,6 @@ func ParseResumeWithLLM(pdfPath string, cfg *config.Config) (string, error) {
 		return "", err
 	}
 	fmt.Println("[LLM] Ответ LLM получен, длина:", len(response.Result.Alternatives[0].Message.Text))
-	// fmt.Println("[LLM] Ответ LLM:", response.Result.Alternatives[0].Message.Text)
 	elapsed := time.Since(start)
 	fmt.Printf("[LLM] Время парсинга резюме: %s\n", elapsed)
 	return response.Result.Alternatives[0].Message.Text, nil

@@ -1,5 +1,7 @@
 package response
 
+import "time"
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
@@ -22,6 +24,7 @@ type UserProfileResponse struct {
 }
 
 type ParsedResumeDTO struct {
+	ID         string          `json:"id"`
 	FullName   string          `json:"full_name"`
 	Email      string          `json:"email"`
 	Phone      string          `json:"phone"`
@@ -29,6 +32,7 @@ type ParsedResumeDTO struct {
 	Skills     []string        `json:"skills"`
 	Experience []ExperienceDTO `json:"experience"`
 	Education  []EducationDTO  `json:"education"`
+	FileURL    string          `json:"file_url"`
 }
 
 type ExperienceDTO struct {
@@ -45,4 +49,15 @@ type EducationDTO struct {
 	Field       string `json:"field"`
 	StartDate   string `json:"start_date"`
 	EndDate     string `json:"end_date"`
+}
+
+type ResumeListItemDTO struct {
+	ID        string    `json:"id"`
+	FullName  string    `json:"full_name"`
+	FileURL   string    `json:"file_url"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type ResumeListDTO struct {
+	Resumes []*ResumeListItemDTO `json:"resumes"`
 }

@@ -1,5 +1,3 @@
-// CreateResumeWithUser создаёт и сохраняет резюме, устанавливая UserID
-
 package service
 
 import (
@@ -29,7 +27,7 @@ func NewResumeService(repo *repository.ResumeRepository, log *zap.Logger, cfg *c
 	}
 }
 
-func (s *ResumeService) CreateResumeWithUser(path string, userID uuid.UUID) (*models.Resume, error) {
+func (s *ResumeService) CreateResumeWithUser(path string, userID uuid.UUID) (*response.ParsedResumeDTO, error) {
 	llmRes, err := parser.ParseResumeWithLLM(path, s.cfg)
 	if err != nil {
 		s.log.Error("Failed to parse resume", zap.Error(err))
@@ -52,10 +50,16 @@ func (s *ResumeService) CreateResumeWithUser(path string, userID uuid.UUID) (*mo
 		return nil, err
 	}
 
-	// Маппинг Skills
+	// Маппинг Skills с использованием FirstOrCreate
 	var skills []models.Skill
 	for _, skillName := range dto.Skills {
-		skills = append(skills, models.Skill{Name: skillName})
+		s.log.Info("Finding or creating skill", zap.String("skill", skillName))
+		skill, err := s.repo.FirstOrCreateSkill(skillName)
+		if err != nil {
+			s.log.Error("Failed to find or create skill", zap.String("skill", skillName), zap.Error(err))
+			return nil, err
+		}
+		skills = append(skills, *skill)
 	}
 
 	// Маппинг Experience
@@ -99,5 +103,103 @@ func (s *ResumeService) CreateResumeWithUser(path string, userID uuid.UUID) (*mo
 		return nil, err
 	}
 
-	return resume, nil
+	// Сохраняем файл резюме
+	file := &models.ResumeFile{
+		ResumeID: resume.ID,
+		Path:     path,
+		MimeType: "application/pdf", // Можно определить динамически при необходимости
+	}
+	if err := s.repo.CreateFile(file); err != nil {
+		s.log.Error("Failed to save resume file", zap.Error(err))
+		return nil, err
+	}
+	fileUrl, err := s.GetResumeFileURL(resume.ID)
+	if err != nil {
+		s.log.Error("Failed to get resume file URL", zap.Error(err))
+		return nil, err
+	}
+	dto.FileURL = fileUrl
+	dto.ID = resume.ID.String()
+
+	return &dto, nil
+}
+
+func (s *ResumeService) GetListResume(userID uuid.UUID) (*response.ResumeListDTO, error) {
+	resumes, err := s.repo.GetListRes(userID)
+	if err != nil {
+		s.log.Error("Failed to get list of resumes", zap.Error(err))
+		return nil, err
+	}
+
+	var dtos []*response.ResumeListItemDTO
+	for _, resume := range *resumes {
+		fileUrl, err := s.GetResumeFileURL(resume.ID)
+		if err != nil {
+			s.log.Error("Failed to get resume file URL", zap.Error(err))
+			return nil, err
+		}
+		dto := &response.ResumeListItemDTO{
+			ID:        resume.ID.String(),
+			FullName:  resume.FullName,
+			FileURL:   fileUrl,
+			CreatedAt: resume.CreatedAt,
+		}
+		dtos = append(dtos, dto)
+	}
+	return &response.ResumeListDTO{Resumes: dtos}, nil
+}
+
+func (s *ResumeService) GetResumeFileURL(resumeID uuid.UUID) (string, error) {
+	url, err := s.repo.GetResFileURL(resumeID)
+	if err != nil {
+		s.log.Error("Failed to get resume file URL", zap.Error(err))
+		return "", err
+	}
+	url = strings.ReplaceAll(url, "./", s.cfg.BaseURL+"/")
+	return url, nil
+}
+
+func (s *ResumeService) GetResumeByID(userID, resumeID uuid.UUID) (*response.ParsedResumeDTO, error) {
+	resume, err := s.repo.GetResumeByID(userID, resumeID)
+	if err != nil {
+		s.log.Error("Failed to get resume by ID", zap.Error(err))
+		return nil, err
+	}
+
+	fileUrl, err := s.GetResumeFileURL(resume.ID)
+	if err != nil {
+		s.log.Error("Failed to get resume file URL", zap.Error(err))
+		return nil, err
+	}
+
+	var dto response.ParsedResumeDTO
+	dto.ID = resume.ID.String()
+	dto.FullName = resume.FullName
+	dto.Email = resume.Email
+	dto.Phone = resume.Phone
+	dto.Location = resume.Location
+	dto.FileURL = fileUrl
+	for _, skill := range resume.Skills {
+		dto.Skills = append(dto.Skills, skill.Name)
+	}
+	for _, exp := range resume.Experience {
+		dto.Experience = append(dto.Experience, response.ExperienceDTO{
+			Company:     exp.Company,
+			Position:    exp.Position,
+			StartDate:   exp.StartDate,
+			EndDate:     exp.EndDate,
+			Description: exp.Description,
+		})
+	}
+	for _, edu := range resume.Education {
+		dto.Education = append(dto.Education, response.EducationDTO{
+			Institution: edu.Institution,
+			Degree:      edu.Degree,
+			Field:       edu.Field,
+			StartDate:   edu.StartDate,
+			EndDate:     edu.EndDate,
+		})
+	}
+
+	return &dto, nil
 }

@@ -67,6 +67,18 @@ type UserLoginRequest struct {
 	Password string `json:"password" binding:"required,min=6"`
 }
 
+// LoginHandler godoc
+// @Summary Вход пользователя
+// @Description Вход существующего пользователя
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param user body UserLoginRequest true "Параметры входа пользователя"
+// @Success 200 {object} response.TokenResponse "Успешный вход пользователя"
+// @Failure 400 {object} response.ErrorResponse "Ошибка валидации"
+// @Failure 409 {object} response.ErrorResponse "Пользователь уже существует"
+// @Failure 500 {object} response.ErrorResponse "Ошибка сервера"
+// @Router /auth/login [post]
 func (h *UserHandler) LoginHandler(c *gin.Context) {
 	var req UserLoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -97,6 +109,18 @@ type UserRefreshRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
+// Refresh godoc
+// @Summary Обновление токена
+// @Description Обновление refresh-токена
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param user body UserRefreshRequest true "Параметры обновления токена"
+// @Success 200 {object} response.TokenResponse "Успешное обновление токена"
+// @Failure 400 {object} response.ErrorResponse "Ошибка валидации"
+// @Failure 401 {object} response.ErrorResponse "Неверный токен"
+// @Failure 500 {object} response.ErrorResponse "Ошибка сервера"
+// @Router /auth/refresh [post]
 func (h *UserHandler) RefreshHandler(c *gin.Context) {
 	var req UserRefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -145,22 +169,3 @@ func (h *UserHandler) ProfileHandler(c *gin.Context) {
 		Email:    user.Email,
 	})
 }
-
-// func (h *UserHandler) UploadResumeHandler(c *gin.Context) {
-// 	file, err := c.FormFile("file")
-// 	if err != nil {
-// 		c.JSON(400, gin.H{"error": "Файл не передан"})
-// 		return
-// 	}
-// 	path := "./uploads/" + file.Filename
-// 	if err := c.SaveUploadedFile(file, path); err != nil {
-// 		c.JSON(500, gin.H{"error": "Ошибка сохранения файла"})
-// 		return
-// 	}
-// 	res, err := parser.ParseResumeWithLLM(path, "llama3")
-// 	if err != nil {
-// 		c.JSON(500, gin.H{"error": "Ошибка парсинга резюме"})
-// 		return
-// 	}
-// 	c.JSON(200, gin.H{"result": res})
-// }

@@ -15,6 +15,11 @@ import (
 	"go.uber.org/zap"
 )
 
+// @Title CVMatch API
+// @Version 1.0
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	_ = godotenv.Load()
 	isDev := os.Getenv("ENV") == "development"

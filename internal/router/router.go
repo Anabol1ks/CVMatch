@@ -23,6 +23,8 @@ func Router(db *gorm.DB, log *zap.Logger, cfg *config.Config, handlers *Handlers
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	r.Static("/uploads", "./uploads")
+
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status": "ok",
@@ -36,9 +38,11 @@ func Router(db *gorm.DB, log *zap.Logger, cfg *config.Config, handlers *Handlers
 		auth.POST("/refresh", handlers.User.RefreshHandler)
 	}
 
-	resume := r.Group("/resume", middleware.JWTAuth(&cfg.JWT))
+	resume := r.Group("/resumes", middleware.JWTAuth(&cfg.JWT))
 	{
 		resume.POST("/upload", handlers.Resume.UploadResumeHandler)
+		resume.GET("/list", handlers.Resume.ListResumesHandler)
+		resume.GET("/:id", handlers.Resume.GetResumeHandler)
 	}
 
 	r.GET("/profile", middleware.JWTAuth(&cfg.JWT), handlers.User.ProfileHandler)
