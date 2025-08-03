@@ -4,6 +4,7 @@ import (
 	"CVMatch/internal/response"
 	"CVMatch/internal/service"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -45,7 +46,7 @@ func (h *ResumeHandler) UploadResumeHandler(c *gin.Context) {
 		return
 	}
 
-	filename := "resume_" + userID.(string) + ".pdf"
+	filename := "resume_" + uuid.New().String() + ".pdf"
 	path := "./uploads/" + filename
 	if err := c.SaveUploadedFile(file, path); err != nil {
 		c.JSON(http.StatusInternalServerError, response.ErrorResponse{Error: "Error saving file"})
@@ -61,6 +62,7 @@ func (h *ResumeHandler) UploadResumeHandler(c *gin.Context) {
 
 	resume, err := h.service.CreateResumeWithUser(path, userUUID)
 	if err != nil {
+		os.Remove(path)
 		c.JSON(http.StatusInternalServerError, response.ErrorResponse{Error: "Error creating resume"})
 		return
 	}

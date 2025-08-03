@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type ResumeService struct {
@@ -50,76 +51,90 @@ func (s *ResumeService) CreateResumeWithUser(path string, userID uuid.UUID) (*re
 		return nil, err
 	}
 
-	// Маппинг Skills с использованием FirstOrCreate
-	var skills []models.Skill
-	for _, skillName := range dto.Skills {
-		s.log.Info("Finding or creating skill", zap.String("skill", skillName))
-		skill, err := s.repo.FirstOrCreateSkill(skillName)
-		if err != nil {
-			s.log.Error("Failed to find or create skill", zap.String("skill", skillName), zap.Error(err))
-			return nil, err
+	// Открываем транзакцию
+	txErr := s.repo.DB().Transaction(func(tx *gorm.DB) error {
+		txRepo := s.repo.WithTx(tx)
+
+		var skills []*models.Skill
+		for _, skillName := range dto.Skills {
+			skill, err := txRepo.FirstOrCreateSkill(skillName)
+			if err != nil {
+				s.log.Error("Failed to find or create skill", zap.String("skill", skillName), zap.Error(err))
+				return err
+			}
+			skills = append(skills, skill)
 		}
-		skills = append(skills, *skill)
+
+		var experience []models.Experience
+		for _, exp := range dto.Experience {
+			experience = append(experience, models.Experience{
+				Company:     exp.Company,
+				Position:    exp.Position,
+				StartDate:   exp.StartDate,
+				EndDate:     exp.EndDate,
+				Description: exp.Description,
+			})
+		}
+
+		var education []models.Education
+		for _, edu := range dto.Education {
+			education = append(education, models.Education{
+				Institution: edu.Institution,
+				Degree:      edu.Degree,
+				Field:       edu.Field,
+				StartDate:   edu.StartDate,
+				EndDate:     edu.EndDate,
+			})
+		}
+
+		resume := &models.Resume{
+			ID:         uuid.New(),
+			UserID:     userID,
+			FullName:   dto.FullName,
+			Email:      dto.Email,
+			Phone:      dto.Phone,
+			Location:   dto.Location,
+			Experience: experience,
+			Education:  education,
+		}
+
+		if err := txRepo.Create(resume); err != nil {
+			s.log.Error("Failed to save resume", zap.Error(err))
+			return err
+		}
+
+		if len(skills) > 0 {
+			if err := txRepo.AssociateSkills(resume, skills); err != nil {
+				s.log.Error("Failed to associate skills", zap.Error(err))
+				return err
+			}
+		}
+
+		file := &models.ResumeFile{
+			ResumeID: resume.ID,
+			Path:     path,
+			MimeType: "application/pdf",
+		}
+		if err := txRepo.CreateFile(file); err != nil {
+			s.log.Error("Failed to save resume file", zap.Error(err))
+			return err
+		}
+
+		dto.ID = resume.ID.String()
+		return nil
+	})
+
+	if txErr != nil {
+		return nil, txErr
 	}
 
-	// Маппинг Experience
-	var experience []models.Experience
-	for _, exp := range dto.Experience {
-		experience = append(experience, models.Experience{
-			Company:     exp.Company,
-			Position:    exp.Position,
-			StartDate:   exp.StartDate,
-			EndDate:     exp.EndDate,
-			Description: exp.Description,
-		})
-	}
-
-	// Маппинг Education
-	var education []models.Education
-	for _, edu := range dto.Education {
-		education = append(education, models.Education{
-			Institution: edu.Institution,
-			Degree:      edu.Degree,
-			Field:       edu.Field,
-			StartDate:   edu.StartDate,
-			EndDate:     edu.EndDate,
-		})
-	}
-
-	resume := &models.Resume{
-		UserID:     userID,
-		FullName:   dto.FullName,
-		Email:      dto.Email,
-		Phone:      dto.Phone,
-		Location:   dto.Location,
-		Skills:     skills,
-		Experience: experience,
-		Education:  education,
-	}
-
-	// Сохраняем резюме в базу данных
-	if err := s.repo.Create(resume); err != nil {
-		s.log.Error("Failed to save resume", zap.Error(err))
-		return nil, err
-	}
-
-	// Сохраняем файл резюме
-	file := &models.ResumeFile{
-		ResumeID: resume.ID,
-		Path:     path,
-		MimeType: "application/pdf", // Можно определить динамически при необходимости
-	}
-	if err := s.repo.CreateFile(file); err != nil {
-		s.log.Error("Failed to save resume file", zap.Error(err))
-		return nil, err
-	}
-	fileUrl, err := s.GetResumeFileURL(resume.ID)
+	// Уже вне транзакции — получаем URL
+	fileUrl, err := s.GetResumeFileURL(uuid.MustParse(dto.ID))
 	if err != nil {
 		s.log.Error("Failed to get resume file URL", zap.Error(err))
 		return nil, err
 	}
 	dto.FileURL = fileUrl
-	dto.ID = resume.ID.String()
 
 	return &dto, nil
 }
