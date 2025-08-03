@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 )
 
@@ -29,6 +30,6 @@ func main() {
 
 	repo := repository.NewResumeRepository(db)
 	service := service.NewResumeService(repo, log, cfg)
-	fmt.Println(service.CreateResume("./uploads/resume.pdf"))
+	fmt.Println(service.CreateResumeWithUser("./uploads/resume.pdf", uuid.New()))
 
 }

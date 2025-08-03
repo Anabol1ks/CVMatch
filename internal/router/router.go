@@ -14,7 +14,8 @@ import (
 )
 
 type Handlers struct {
-	User *handlers.UserHandler
+	User   *handlers.UserHandler
+	Resume *handlers.ResumeHandler
 }
 
 func Router(db *gorm.DB, log *zap.Logger, cfg *config.Config, handlers *Handlers) *gin.Engine {
@@ -34,6 +35,12 @@ func Router(db *gorm.DB, log *zap.Logger, cfg *config.Config, handlers *Handlers
 		auth.POST("/login", handlers.User.LoginHandler)
 		auth.POST("/refresh", handlers.User.RefreshHandler)
 	}
+
+	resume := r.Group("/resume", middleware.JWTAuth(&cfg.JWT))
+	{
+		resume.POST("/upload", handlers.Resume.UploadResumeHandler)
+	}
+
 	r.GET("/profile", middleware.JWTAuth(&cfg.JWT), handlers.User.ProfileHandler)
 
 	// r.POST("/upload", handlers.User.UploadResumeHandler)

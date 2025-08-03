@@ -34,8 +34,13 @@ func main() {
 	userService := service.NewUserService(userRepo, log, cfg)
 	userHandler := handlers.NewUserHandler(userService)
 
+	resumeRepo := repository.NewResumeRepository(db)
+	resumeService := service.NewResumeService(resumeRepo, log, cfg)
+	resumeHandler := handlers.NewResumeHandler(resumeService)
+
 	handlers := &router.Handlers{
-		User: userHandler,
+		User:   userHandler,
+		Resume: resumeHandler,
 	}
 
 	r := router.Router(db, log, cfg, handlers)

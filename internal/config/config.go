@@ -15,7 +15,6 @@ type Config struct {
 	JWT              JWTConfig
 	YandexGPTIAM     string
 	YandexGPTCatalog string
-	YandexGPTModel   string
 }
 
 type JWTConfig struct {
@@ -52,7 +51,6 @@ func Load(log *zap.Logger) *Config {
 		},
 		YandexGPTIAM:     getEnv("YANDEXGPT_IAM", log),
 		YandexGPTCatalog: getEnv("YANDEXGPT_CATALOG_ID", log),
-		YandexGPTModel:   getEnv("YANDEXGPT_MODEL", log),
 	}
 }
 

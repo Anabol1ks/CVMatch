@@ -1,3 +1,5 @@
+// CreateResumeWithUser создаёт и сохраняет резюме, устанавливая UserID
+
 package service
 
 import (
@@ -9,6 +11,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -26,7 +29,7 @@ func NewResumeService(repo *repository.ResumeRepository, log *zap.Logger, cfg *c
 	}
 }
 
-func (s *ResumeService) CreateResume(path string) (*models.Resume, error) {
+func (s *ResumeService) CreateResumeWithUser(path string, userID uuid.UUID) (*models.Resume, error) {
 	llmRes, err := parser.ParseResumeWithLLM(path, s.cfg)
 	if err != nil {
 		s.log.Error("Failed to parse resume", zap.Error(err))
@@ -48,8 +51,6 @@ func (s *ResumeService) CreateResume(path string) (*models.Resume, error) {
 		s.log.Error("Failed to unmarshal resume DTO", zap.Error(err))
 		return nil, err
 	}
-
-	s.log.Info("Parsed resume DTO", zap.Any("dto", dto))
 
 	// Маппинг Skills
 	var skills []models.Skill
@@ -82,6 +83,7 @@ func (s *ResumeService) CreateResume(path string) (*models.Resume, error) {
 	}
 
 	resume := &models.Resume{
+		UserID:     userID,
 		FullName:   dto.FullName,
 		Email:      dto.Email,
 		Phone:      dto.Phone,
@@ -89,6 +91,12 @@ func (s *ResumeService) CreateResume(path string) (*models.Resume, error) {
 		Skills:     skills,
 		Experience: experience,
 		Education:  education,
+	}
+
+	// Сохраняем резюме в базу данных
+	if err := s.repo.Create(resume); err != nil {
+		s.log.Error("Failed to save resume", zap.Error(err))
+		return nil, err
 	}
 
 	return resume, nil
