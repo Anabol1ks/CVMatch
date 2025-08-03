@@ -36,9 +36,9 @@ type Resume struct {
 	Phone      string       `gorm:"type:varchar(50)"`
 	Location   string       `gorm:"type:varchar(255)"`
 	Skills     []Skill      `gorm:"many2many:resume_skills;"`
-	Experience []Experience `gorm:"foreignKey:ResumeID"`
-	Education  []Education  `gorm:"foreignKey:ResumeID"`
-	File       ResumeFile   `gorm:"foreignKey:ResumeID"`
+	Experience []Experience `gorm:"foreignKey:ResumeID;constraint:OnDelete:CASCADE"`
+	Education  []Education  `gorm:"foreignKey:ResumeID;constraint:OnDelete:CASCADE"`
+	File       ResumeFile   `gorm:"foreignKey:ResumeID;constraint:OnDelete:CASCADE"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 	DeletedAt  gorm.DeletedAt `gorm:"index"`

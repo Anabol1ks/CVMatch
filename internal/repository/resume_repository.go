@@ -69,8 +69,16 @@ func (r *ResumeRepository) GetResFileURL(id uuid.UUID) (string, error) {
 
 func (r *ResumeRepository) FirstOrCreateSkill(name string) (*models.Skill, error) {
 	var skill models.Skill
-	err := r.db.Where("name = ?", name).First(&skill).Error
+	// Ищем скилл среди всех, включая soft-deleted
+	err := r.db.Unscoped().Where("name = ?", name).First(&skill).Error
 	if err == nil {
+		// Если найден и был soft-deleted, восстанавливаем
+		if skill.DeletedAt.Valid {
+			if err := r.db.Unscoped().Model(&skill).Update("deleted_at", nil).Error; err != nil {
+				return nil, err
+			}
+			skill.DeletedAt.Valid = false
+		}
 		return &skill, nil
 	}
 	if err == gorm.ErrRecordNotFound {
