@@ -43,9 +43,9 @@ func (r *ResumeRepository) CreateFile(file *models.ResumeFile) error {
 	return r.db.Create(file).Error
 }
 
-func (r *ResumeRepository) GetResumeByID(userID, id uuid.UUID) (*models.Resume, error) {
+func (r *ResumeRepository) GetResumeByID(userID, resumeID uuid.UUID) (*models.Resume, error) {
 	var resume models.Resume
-	if err := r.db.Preload("Skills").Preload("Experience").Preload("Education").First(&resume, id).Error; err != nil {
+	if err := r.db.Preload("Skills").Preload("Experience").Preload("Education").Where("id = ? AND user_id = ?", resumeID, userID).First(&resume).Error; err != nil {
 		return nil, err
 	}
 	return &resume, nil
@@ -89,4 +89,47 @@ func (r *ResumeRepository) FirstOrCreateSkill(name string) (*models.Skill, error
 
 func (r *ResumeRepository) WithTx(tx *gorm.DB) *ResumeRepository {
 	return &ResumeRepository{db: tx}
+}
+
+func (r *ResumeRepository) GetSkillsByResumeID(resumeID uuid.UUID) ([]*models.Skill, error) {
+	var skills []*models.Skill
+	if err := r.db.Table("resume_skills").Select("skills.*").
+		Joins("join skills on skills.id = resume_skills.skill_id").
+		Where("resume_skills.resume_id = ?", resumeID).Scan(&skills).Error; err != nil {
+		return nil, err
+	}
+	return skills, nil
+}
+
+func (r *ResumeRepository) DeleteSkillFromResume(resumeID, skillID uuid.UUID) error {
+	return r.db.Table("resume_skills").Where("resume_id = ? AND skill_id = ?", resumeID, skillID).Delete(nil).Error
+}
+
+func (r *ResumeRepository) DeleteUnusedSkill(skillID uuid.UUID) error {
+	var count int64
+	if err := r.db.Table("resume_skills").Where("skill_id = ?", skillID).Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+	return r.db.Delete(&models.Skill{}, "id = ?", skillID).Error
+}
+
+func (r *ResumeRepository) DeleteUnusedEdAndEx(resumeID uuid.UUID) error {
+	if err := r.db.Delete(&models.Education{}, "resume_id = ?", resumeID).Error; err != nil {
+		return err
+	}
+	return r.db.Delete(&models.Experience{}, "resume_id = ?", resumeID).Error
+}
+func (r *ResumeRepository) DeleteUnusedMatching(resumeID uuid.UUID) error {
+	return r.db.Delete(&models.MatchingResult{}, "resume_id = ?", resumeID).Error
+}
+
+func (r *ResumeRepository) DeleteResumeFile(resumeID uuid.UUID) error {
+	return r.db.Delete(&models.ResumeFile{}, "resume_id = ?", resumeID).Error
+}
+
+func (r *ResumeRepository) DeleteResume(resumeID uuid.UUID) error {
+	return r.db.Delete(&models.Resume{}, "id = ?", resumeID).Error
 }

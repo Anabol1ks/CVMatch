@@ -135,9 +135,46 @@ func (h *ResumeHandler) GetResumeHandler(c *gin.Context) {
 
 	resume, err := h.service.GetResumeByID(userUUID, resumeUUID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.ErrorResponse{Error: "Error getting resume"})
+		c.JSON(http.StatusNotFound, response.ErrorResponse{Error: "Resume not found"})
 		return
 	}
 
 	c.JSON(http.StatusOK, resume)
+}
+
+// DeleteResumeHandler godoc
+// @Summary Удаление резюме по ID
+// @Description Удаление резюме по ID для пользователя
+// @Security BearerAuth
+// @Tags resumes
+// @Produce json
+// @Param id path string true "ID резюме"
+// @Success 200 {object} response.SuccessResponse "Успешное удаление резюме"
+// @Failure 401 {object} response.ErrorResponse "Unauthorized"
+// @Failure 500 {object} response.ErrorResponse "Ошибка сервера"
+// @Router /resumes/{id} [delete]
+func (h *ResumeHandler) DeleteResumeHandler(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+	userUUID, err := uuid.Parse(userID.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ErrorResponse{Error: "Invalid user id"})
+		return
+	}
+	resumeID := c.Param("id")
+	resumeUUID, err := uuid.Parse(resumeID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ErrorResponse{Error: "Invalid resume id"})
+		return
+	}
+
+	if err := h.service.DeleteResume(userUUID, resumeUUID); err != nil {
+		c.JSON(http.StatusInternalServerError, response.ErrorResponse{Error: "Error deleting resume"})
+		return
+	}
+
+	c.JSON(http.StatusOK, response.SuccessResponse{Message: "Resume deleted successfully"})
 }

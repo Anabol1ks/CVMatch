@@ -12,6 +12,10 @@ type UserRegisterResponse struct {
 	Email    string `json:"email"`
 }
 
+type SuccessResponse struct {
+	Message string `json:"message"`
+}
+
 type TokenResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`

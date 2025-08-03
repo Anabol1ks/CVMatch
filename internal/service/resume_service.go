@@ -7,6 +7,7 @@ import (
 	"CVMatch/internal/repository"
 	"CVMatch/internal/response"
 	"encoding/json"
+	"os"
 	"strings"
 
 	"github.com/google/uuid"
@@ -217,4 +218,58 @@ func (s *ResumeService) GetResumeByID(userID, resumeID uuid.UUID) (*response.Par
 	}
 
 	return &dto, nil
+}
+
+func (s *ResumeService) DeleteResume(userID, resumeID uuid.UUID) error {
+	txErr := s.repo.DB().Transaction(func(tx *gorm.DB) error {
+		txRepo := s.repo.WithTx(tx)
+		_, err := txRepo.GetResumeByID(userID, resumeID)
+		if err != nil {
+			s.log.Error("Failed to get resume by ID", zap.Error(err))
+			return err
+		}
+		skills, err := txRepo.GetSkillsByResumeID(resumeID)
+		if err != nil {
+			s.log.Error("Failed to get skills by resume ID", zap.Error(err))
+			return err
+		}
+		for _, skill := range skills {
+			if err := txRepo.DeleteSkillFromResume(resumeID, skill.ID); err != nil {
+				s.log.Error("Failed to delete skill from resume", zap.Error(err))
+				return err
+			}
+			if err := txRepo.DeleteUnusedSkill(skill.ID); err != nil {
+				s.log.Error("Failed to delete unused skill", zap.Error(err))
+				return err
+			}
+		}
+		if err := txRepo.DeleteUnusedEdAndEx(resumeID); err != nil {
+			s.log.Error("Failed to delete unused education and experience", zap.Error(err))
+			return err
+		}
+		if err := txRepo.DeleteUnusedMatching(resumeID); err != nil {
+			s.log.Error("Failed to delete unused matching", zap.Error(err))
+			return err
+		}
+		path, err := txRepo.GetResFileURL(resumeID)
+		if err != nil {
+			s.log.Error("Failed to get resume file path", zap.Error(err))
+			return err
+		}
+		if err := txRepo.DeleteResumeFile(resumeID); err != nil {
+			s.log.Error("Failed to delete resume file", zap.Error(err))
+			return err
+		}
+		os.Remove(path)
+		if err := txRepo.DeleteResume(resumeID); err != nil {
+			s.log.Error("Failed to delete resume", zap.Error(err))
+			return err
+		}
+		return nil
+	})
+	if txErr != nil {
+		return txErr
+	}
+	return nil
+
 }

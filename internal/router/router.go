@@ -43,6 +43,7 @@ func Router(db *gorm.DB, log *zap.Logger, cfg *config.Config, handlers *Handlers
 		resume.POST("/upload", handlers.Resume.UploadResumeHandler)
 		resume.GET("/list", handlers.Resume.ListResumesHandler)
 		resume.GET("/:id", handlers.Resume.GetResumeHandler)
+		resume.DELETE("/:id", handlers.Resume.DeleteResumeHandler)
 	}
 
 	r.GET("/profile", middleware.JWTAuth(&cfg.JWT), handlers.User.ProfileHandler)

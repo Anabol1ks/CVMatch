@@ -3,9 +3,12 @@ package main
 import (
 	"CVMatch/internal/config"
 	"CVMatch/internal/logger"
+	"CVMatch/internal/repository"
 	"CVMatch/internal/storage"
+	"fmt"
 	"os"
 
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 )
 
@@ -24,7 +27,8 @@ func main() {
 	db := storage.ConnectDB(&cfg.DB, log)
 	storage.Migrate(db, log)
 
-	// repo := repository.NewResumeRepository(db)
+	repo := repository.NewResumeRepository(db)
+	fmt.Println(repo.GetSkillsByResumeID(uuid.MustParse("a681e1de-f4a8-47c7-933d-cb7547ac0819")))
 
 	// fmt.Println(repo.GetResFileURL(uuid.MustParse("")))
 	// service := service.NewResumeService(repo, log, cfg)

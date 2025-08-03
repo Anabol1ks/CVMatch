@@ -107,6 +107,11 @@ definitions:
       id:
         type: string
     type: object
+  response.SuccessResponse:
+    properties:
+      message:
+        type: string
+    type: object
   response.TokenResponse:
     properties:
       access_token:
@@ -231,6 +236,34 @@ paths:
       tags:
       - users
   /resumes/{id}:
+    delete:
+      description: Удаление резюме по ID для пользователя
+      parameters:
+      - description: ID резюме
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешное удаление резюме
+          schema:
+            $ref: '#/definitions/response.SuccessResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удаление резюме по ID
+      tags:
+      - resumes
     get:
       description: Получение резюме по ID для пользователя
       parameters:
