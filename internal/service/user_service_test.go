@@ -81,6 +81,24 @@ func TestUserService_Login_UserNotFound(t *testing.T) {
 	require.ErrorIs(t, err, ErrUserNotFound)
 }
 
+func TestUserService_Login_InvalidPassword(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	hashed, err := hashedPassword("correct_password")
+	require.NoError(t, err)
+
+	mockRepo := mocks.NewMockUserRepositoryI(ctrl)
+	mockRepo.EXPECT().FindByEmail("test@example.com").Return(&models.User{
+		Email:    "test@example.com",
+		Password: string(hashed),
+	}, nil)
+
+	service := NewUserService(mockRepo, zap.NewNop(), cfg)
+	_, _, err = service.Login("test@example.com", "wrong_password")
+	require.ErrorIs(t, err, ErrInvalidPassword)
+}
+
 func TestUserService_RefreshToken_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -107,4 +125,36 @@ func TestUserService_RefreshToken_Invalid(t *testing.T) {
 	service := NewUserService(mockRepo, zap.NewNop(), cfg)
 	_, _, err := service.RefreshToken("invalid_refresh_token")
 	require.ErrorIs(t, err, ErrInvalidToken)
+}
+
+func TestUserService_Profile_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockUserRepositoryI(ctrl)
+	userID := uuid.New()
+	mockRepo.EXPECT().FindByID(userID.String()).Return(&models.User{
+		ID:       userID,
+		Email:    "test@example.com",
+		Nickname: "testuser",
+	}, nil)
+
+	service := NewUserService(mockRepo, zap.NewNop(), cfg)
+	user, err := service.Profile(userID.String())
+	require.NoError(t, err)
+	require.NotNil(t, user)
+}
+
+func TestUserService_Profile_NotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockUserRepositoryI(ctrl)
+	userID := uuid.New()
+	mockRepo.EXPECT().FindByID(userID.String()).Return(nil, ErrUserNotFound)
+
+	service := NewUserService(mockRepo, zap.NewNop(), cfg)
+	user, err := service.Profile(userID.String())
+	require.ErrorIs(t, err, ErrUserNotFound)
+	require.Nil(t, user)
 }

@@ -5,6 +5,7 @@ import (
 	"CVMatch/internal/config"
 	"CVMatch/internal/handlers"
 	"CVMatch/internal/logger"
+	"CVMatch/internal/parser"
 	"CVMatch/internal/repository"
 	"CVMatch/internal/router"
 	"CVMatch/internal/service"
@@ -40,7 +41,8 @@ func main() {
 	userHandler := handlers.NewUserHandler(userService)
 
 	resumeRepo := repository.NewResumeRepository(db)
-	resumeService := service.NewResumeService(resumeRepo, log, cfg)
+	resumeParser := parser.YandexResumeParser{}
+	resumeService := service.NewResumeService(resumeRepo, log, cfg, resumeParser)
 	resumeHandler := handlers.NewResumeHandler(resumeService)
 
 	handlers := &router.Handlers{

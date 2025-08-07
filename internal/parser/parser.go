@@ -11,6 +11,16 @@ import (
 	"github.com/sheeiavellie/go-yandexgpt"
 )
 
+type ResumeParserI interface {
+	ParseResume(path string, cfg *config.Config) (string, error)
+}
+
+type YandexResumeParser struct{}
+
+func (YandexResumeParser) ParseResume(path string, cfg *config.Config) (string, error) {
+	return ParseResumeWithYandex(path, cfg)
+}
+
 func ExtractTextFromPDF(path string) (string, error) {
 	f, r, err := pdf.Open(path)
 	if err != nil {

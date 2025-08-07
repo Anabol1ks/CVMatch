@@ -12,6 +12,25 @@ type ResumeRepository struct {
 	db *gorm.DB
 }
 
+type ResumeRepositoryI interface {
+	DB() *gorm.DB
+	Create(resume *models.Resume) error
+	CreateFile(file *models.ResumeFile) error
+	GetResumeByID(userID, resumeID uuid.UUID) (*models.Resume, error)
+	GetListRes(userID uuid.UUID) (*[]models.Resume, error)
+	GetResFileURL(id uuid.UUID) (string, error)
+	FirstOrCreateSkill(name string) (*models.Skill, error)
+	WithTx(tx *gorm.DB) ResumeRepositoryI
+	GetSkillsByResumeID(resumeID uuid.UUID) ([]*models.Skill, error)
+	DeleteSkillFromResume(resumeID, skillID uuid.UUID) error
+	DeleteUnusedSkill(skillID uuid.UUID) error
+	AssociateSkills(resume *models.Resume, skills []*models.Skill) error
+	DeleteUnusedEdAndEx(resumeID uuid.UUID) error
+	DeleteUnusedMatching(resumeID uuid.UUID) error
+	DeleteResumeFile(resumeID uuid.UUID) error
+	DeleteResume(resumeID uuid.UUID) error
+}
+
 // Возвращает *gorm.DB для прямого доступа (например, для select по именам)
 func (r *ResumeRepository) DB() *gorm.DB {
 	return r.db
@@ -95,7 +114,7 @@ func (r *ResumeRepository) FirstOrCreateSkill(name string) (*models.Skill, error
 	return nil, err
 }
 
-func (r *ResumeRepository) WithTx(tx *gorm.DB) *ResumeRepository {
+func (r *ResumeRepository) WithTx(tx *gorm.DB) ResumeRepositoryI {
 	return &ResumeRepository{db: tx}
 }
 

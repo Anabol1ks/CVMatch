@@ -16,21 +16,23 @@ import (
 )
 
 type ResumeService struct {
-	repo *repository.ResumeRepository
-	log  *zap.Logger
-	cfg  *config.Config
+	repo   repository.ResumeRepositoryI
+	log    *zap.Logger
+	cfg    *config.Config
+	parser parser.ResumeParserI
 }
 
-func NewResumeService(repo *repository.ResumeRepository, log *zap.Logger, cfg *config.Config) *ResumeService {
+func NewResumeService(repo repository.ResumeRepositoryI, log *zap.Logger, cfg *config.Config, parser parser.ResumeParserI) *ResumeService {
 	return &ResumeService{
-		repo: repo,
-		log:  log,
-		cfg:  cfg,
+		repo:   repo,
+		log:    log,
+		cfg:    cfg,
+		parser: parser,
 	}
 }
 
 func (s *ResumeService) CreateResumeWithUser(path string, userID uuid.UUID) (*response.ParsedResumeDTO, error) {
-	llmRes, err := parser.ParseResumeWithYandex(path, s.cfg)
+	llmRes, err := s.parser.ParseResume(path, s.cfg)
 	if err != nil {
 		s.log.Error("Failed to parse resume", zap.Error(err))
 		return nil, err
