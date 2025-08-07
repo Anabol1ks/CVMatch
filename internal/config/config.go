@@ -1,13 +1,28 @@
 package config
 
 import (
+	"log"
 	"os"
+	"strings"
+	"time"
 
 	"go.uber.org/zap"
 )
 
 type Config struct {
-	DB DBConfig
+	DB               DBConfig
+	OModel           string
+	JWT              JWTConfig
+	YandexGPTIAM     string
+	YandexGPTCatalog string
+	BaseURL          string
+}
+
+type JWTConfig struct {
+	Access     string
+	AccessExp  time.Duration
+	Refresh    string
+	RefreshExp time.Duration
 }
 
 type DBConfig struct {
@@ -29,6 +44,15 @@ func Load(log *zap.Logger) *Config {
 			Name:     getEnv("DB_NAME", log),
 			SSLMode:  getEnv("DB_SSLMODE", log),
 		},
+		JWT: JWTConfig{
+			Access:     getEnv("ACCESS_SECRET", log),
+			AccessExp:  parseDurationWithDays(getEnv("ACCESS_EXP", log)),
+			Refresh:    getEnv("REFRESH_SECRET", log),
+			RefreshExp: parseDurationWithDays(getEnv("REFRESH_EXP", log)),
+		},
+		YandexGPTIAM:     getEnv("YANDEXGPT_IAM", log),
+		YandexGPTCatalog: getEnv("YANDEXGPT_CATALOG_ID", log),
+		BaseURL:          getEnv("BASE_URL", log),
 	}
 }
 
@@ -38,4 +62,22 @@ func getEnv(key string, log *zap.Logger) string {
 	}
 	log.Error("Обязательное значение для ключа не установлено", zap.String("key", key))
 	panic("Обязательное значение для ключа не установлено")
+}
+
+func parseDurationWithDays(s string) time.Duration {
+	if strings.HasSuffix(s, "d") {
+		daysStr := strings.TrimSuffix(s, "d")
+		days, err := time.ParseDuration(daysStr + "h")
+		if err != nil {
+			log.Printf("Ошибка парсинга TTL: %v", err)
+			return 0
+		}
+		return time.Duration(24) * days
+	}
+
+	duration, err := time.ParseDuration(s)
+	if err != nil {
+		return 0
+	}
+	return duration
 }

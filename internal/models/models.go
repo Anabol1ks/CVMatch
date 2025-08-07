@@ -7,17 +7,38 @@ import (
 	"gorm.io/gorm"
 )
 
+// User — пользователь системы
+type User struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey"`
+	Email     string    `gorm:"type:varchar(255);unique;not null"`
+	Nickname  string    `gorm:"type:varchar(255)"`
+	Password  string    `gorm:"type:varchar(255);not null"`
+	Role      string    `gorm:"type:varchar(50);default:user"`
+	Resumes   []Resume  `gorm:"foreignKey:UserID"`
+	Vacancies []Vacancy `gorm:"foreignKey:UserID"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+}
+
+func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
+	u.ID = uuid.New()
+	return
+}
+
 // Resume — информация о загруженном резюме
 type Resume struct {
 	ID         uuid.UUID    `gorm:"type:uuid;primaryKey"`
+	UserID     uuid.UUID    `gorm:"type:uuid;not null;index"`
+	User       User         `gorm:"foreignKey:UserID"`
 	FullName   string       `gorm:"type:varchar(255);not null"`
 	Email      string       `gorm:"type:varchar(255)"`
 	Phone      string       `gorm:"type:varchar(50)"`
 	Location   string       `gorm:"type:varchar(255)"`
 	Skills     []Skill      `gorm:"many2many:resume_skills;"`
-	Experience []Experience `gorm:"foreignKey:ResumeID"`
-	Education  []Education  `gorm:"foreignKey:ResumeID"`
-	File       ResumeFile   `gorm:"foreignKey:ResumeID"`
+	Experience []Experience `gorm:"foreignKey:ResumeID;constraint:OnDelete:CASCADE"`
+	Education  []Education  `gorm:"foreignKey:ResumeID;constraint:OnDelete:CASCADE"`
+	File       ResumeFile   `gorm:"foreignKey:ResumeID;constraint:OnDelete:CASCADE"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 	DeletedAt  gorm.DeletedAt `gorm:"index"`
@@ -64,9 +85,9 @@ type Experience struct {
 	ResumeID    uuid.UUID `gorm:"type:uuid;not null;index"`
 	Company     string    `gorm:"type:varchar(255)"`
 	Position    string    `gorm:"type:varchar(255)"`
-	StartDate   time.Time
-	EndDate     *time.Time
-	Description string `gorm:"type:text"`
+	StartDate   string    `gorm:"type:varchar(32)"`
+	EndDate     string    `gorm:"type:varchar(32)"`
+	Description string    `gorm:"type:text"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
@@ -84,8 +105,8 @@ type Education struct {
 	Institution string    `gorm:"type:varchar(255)"`
 	Degree      string    `gorm:"type:varchar(255)"`
 	Field       string    `gorm:"type:varchar(255)"`
-	StartDate   time.Time
-	EndDate     *time.Time
+	StartDate   string    `gorm:"type:varchar(32)"`
+	EndDate     string    `gorm:"type:varchar(32)"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
@@ -99,6 +120,8 @@ func (m *Education) BeforeCreate(tx *gorm.DB) (err error) {
 // Vacancy — вакансия (Job Description)
 type Vacancy struct {
 	ID          uuid.UUID `gorm:"type:uuid;primaryKey"`
+	UserID      uuid.UUID `gorm:"type:uuid;not null;index"`
+	User        User      `gorm:"foreignKey:UserID"`
 	Title       string    `gorm:"type:varchar(255);not null"`
 	Description string    `gorm:"type:text"`
 	Location    string    `gorm:"type:varchar(255)"`
