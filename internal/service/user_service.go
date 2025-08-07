@@ -14,12 +14,12 @@ import (
 var ErrUserExists = errors.New("user already exists")
 
 type UserService struct {
-	repo *repository.UserRepository
+	repo repository.UserRepositoryI
 	log  *zap.Logger
 	cfg  *config.Config
 }
 
-func NewUserService(repo *repository.UserRepository, log *zap.Logger, cfg *config.Config) *UserService {
+func NewUserService(repo repository.UserRepositoryI, log *zap.Logger, cfg *config.Config) *UserService {
 	return &UserService{
 		repo: repo,
 		log:  log,
