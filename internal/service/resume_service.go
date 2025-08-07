@@ -30,7 +30,7 @@ func NewResumeService(repo *repository.ResumeRepository, log *zap.Logger, cfg *c
 }
 
 func (s *ResumeService) CreateResumeWithUser(path string, userID uuid.UUID) (*response.ParsedResumeDTO, error) {
-	llmRes, err := parser.ParseResumeWithLLM(path, s.cfg)
+	llmRes, err := parser.ParseResumeWithYandex(path, s.cfg)
 	if err != nil {
 		s.log.Error("Failed to parse resume", zap.Error(err))
 		return nil, err

@@ -57,6 +57,5 @@ func Router(db *gorm.DB, log *zap.Logger, cfg *config.Config, handlers *Handlers
 
 	r.GET("/profile", middleware.JWTAuth(&cfg.JWT), handlers.User.ProfileHandler)
 
-	// r.POST("/upload", handlers.User.UploadResumeHandler)
 	return r
 }

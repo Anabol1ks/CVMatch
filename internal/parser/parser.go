@@ -65,18 +65,18 @@ func BuildPrompt(text string) string {
 `, text)
 }
 
-// Парсинг резюме через LLM (Ollama)
-func ParseResumeWithLLM(pdfPath string, cfg *config.Config) (string, error) {
+// Парсинг резюме через Yandex (Ollama)
+func ParseResumeWithYandex(pdfPath string, cfg *config.Config) (string, error) {
 	start := time.Now()
-	fmt.Println("[LLM] Начинаем парсинг резюме через LLM...")
+	fmt.Println("[Yandex] Начинаем парсинг резюме через Yandex...")
 	resumeText, err := ExtractTextFromPDF(pdfPath)
 	if err != nil {
-		fmt.Println("[LLM] Ошибка извлечения текста из PDF:", err)
+		fmt.Println("[Yandex] Ошибка извлечения текста из PDF:", err)
 		return "", err
 	}
-	fmt.Println("[LLM] Текст резюме успешно извлечён, длина:", len(resumeText))
+	fmt.Println("[Yandex] Текст резюме успешно извлечён, длина:", len(resumeText))
 	prompt := BuildPrompt(resumeText)
-	fmt.Println("[LLM] Prompt сформирован, длина:", len(prompt))
+	fmt.Println("[Yandex] Prompt сформирован, длина:", len(prompt))
 
 	client := yandexgpt.NewYandexGPTClientWithAPIKey(cfg.YandexGPTIAM)
 	request := yandexgpt.YandexGPTRequest{
@@ -102,8 +102,8 @@ func ParseResumeWithLLM(pdfPath string, cfg *config.Config) (string, error) {
 		fmt.Println("Request error")
 		return "", err
 	}
-	fmt.Println("[LLM] Ответ LLM получен, длина:", len(response.Result.Alternatives[0].Message.Text))
+	fmt.Println("[Yandex] Ответ Yandex получен, длина:", len(response.Result.Alternatives[0].Message.Text))
 	elapsed := time.Since(start)
-	fmt.Printf("[LLM] Время парсинга резюме: %s\n", elapsed)
+	fmt.Printf("[Yandex] Время парсинга резюме: %s\n", elapsed)
 	return response.Result.Alternatives[0].Message.Text, nil
 }
