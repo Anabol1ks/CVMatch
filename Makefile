@@ -6,3 +6,6 @@ swag:
 
 doc:
 	docker-compose up -d --build
+
+test:
+	go test ./...
