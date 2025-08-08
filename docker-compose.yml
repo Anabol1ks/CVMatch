@@ -1,4 +1,13 @@
 services:
+  cvmatch-service:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    depends_on:
+      - cvmatch-db
+    restart: unless-stopped
   cvmatch-db:
     image: postgres:17
     environment:
