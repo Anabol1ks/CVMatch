@@ -16,6 +16,12 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	}
 }
 
+type UserRepositoryI interface {
+	Create(user *models.User) error
+	FindByEmail(email string) (*models.User, error)
+	FindByID(id string) (*models.User, error)
+}
+
 func (r *UserRepository) Create(user *models.User) error {
 	return r.db.Create(user).Error
 }
